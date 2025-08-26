@@ -1,1 +1,2 @@
 bcrypt # Password hashing library
+psycopg2 # PostgreSQL database adapter for Python
