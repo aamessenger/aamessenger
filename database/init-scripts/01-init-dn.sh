@@ -1,6 +1,5 @@
 # Copyright (c) 2023 Andrejs Grišins, Anastasia Petrova. Unauthorized use prohibited.
 
-#!/bin/bash
 set -e  # Exit on any error
 
 # Start PostgreSQL in the background to perform initialization
@@ -8,9 +7,9 @@ gosu postgres pg_ctl -D "$PGDATA" -w start
 
 # Create a user and database
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    CREATE USER myuser WITH PASSWORD 'mypassword';
-    CREATE DATABASE mydb OWNER myuser;
-    GRANT ALL PRIVILEGES ON DATABASE mydb TO myuser;
+    CREATE USER postgres WITH PASSWORD 'databasepassword';
+    CREATE DATABASE postgres OWNER postgres;
+    GRANT ALL PRIVILEGES ON DATABASE postgres TO postgres;
 EOSQL
 
 # Execute custom SQL files (if any)
