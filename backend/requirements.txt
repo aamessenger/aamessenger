@@ -1,2 +1,4 @@
 bcrypt # Password hashing library
 psycopg2 # PostgreSQL database adapter for Python
+random # Random variables generation
+string # Common string operations
