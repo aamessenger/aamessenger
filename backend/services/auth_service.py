@@ -1,20 +1,25 @@
 # Copyright (c) 2025 Andrejs Grišins, Anastasia Petrova. Unauthorized use prohibited.
 
-import bcrypt
+import hashlib
 import psycopg2
 import random
 import string
+import secrets
+import re
 
 connection = psycopg2.connect(dbname="postgres", user="postgres", password="databasepassword", host="localhost", port=5432)
 cursor = connection.cursor()
 
 def create_user_with_email(username: str, email: str, password:str):
-    check_unique = cursor.execute((
+    cursor.execute((
         """SELECT * FROM users WHERE username = %s OR email = %s"""
     ), (username, email))
     if cursor.fetchone():
         raise ValueError("Username or email already exists")
     
+    if not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
+        raise ValueError("Invalid email format")
+
     password_hash = hash_password(password)
 
     cursor.execute((
@@ -23,14 +28,13 @@ def create_user_with_email(username: str, email: str, password:str):
     pass
 
 def create_user_guest():
-    check_unique = False
-    while not check_unique:
+    while True:
         username = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(8))
         cursor.execute((
             """SELECT * FROM users WHERE username = %s"""
         ), (username,))
         if not cursor.fetchone():
-            check_unique = True
+            break
     
     cursor.execute((
         """INSERT INTO users (username, guest) VALUES (%s, TRUE)"""
@@ -39,18 +43,25 @@ def create_user_guest():
     
 
 def hash_password(password: str) -> str:
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-    return hashed.decode('utf-8')
+    salt = secrets.token_hex(16)
+    hash_obj = hashlib.sha256()
+    hash_obj.update(salt.encode('utf-8') + password.encode('utf-8'))
+    return salt + hash_obj.hexdigest()
 
 def verify_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+    salt = hashed[:32]
+    stored_hash = hashed[32:]
+    hash_obj = hashlib.sha256()
+    hash_obj.update(salt.encode('utf-8') + password.encode('utf-8'))
+    return hash_obj.hexdigest() == stored_hash
 
 def main():
-    create_user_with_email("aa", "NULL", "NULL")
+    #print(create_user_guest())
+    #create_user_with_email("aaaaaa", "aaa@aa.com", "[null]")
 
 if __name__ == "__main__":
     main()
+
 connection.commit()
 cursor.close()
-connection.close()  
+connection.close()
