@@ -1,12 +1,10 @@
 // Copyright (c) 2023 Andrejs Grišins, Anastasia Petrova. Unauthorized use prohibited.
-
-import io.ktor.server.routing.*
-import io.ktor.http.*
-import io.ktor.server.response.*
-import io.ktor.server.request.*
-import io.ktor.server.application.*
-import com.example.models.User
-import com.example.services.AuthService
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.post
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.response.respond
+import io.ktor.server.request.receive
+import io.ktor.server.application.ApplicationCall
 
 fun Route.authRouting(authService: AuthService) {
     post("/register") {
