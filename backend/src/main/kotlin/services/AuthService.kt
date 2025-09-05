@@ -1,10 +1,11 @@
 // Copyright (c) 2023 Andrejs Grišins, Anastasia Petrova. Unauthorized use prohibited.
-
+import org.apache.commons.validator.routines.EmailValidator
+import java.security.MessageDigest
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.security.SecureRandom
 import java.util.*
-import org.apache.commons.validator.Validator
+//import org.apache.commons.validator.Validator
 
 class AuthService(
     private val userRepository: UserRepository,
@@ -18,15 +19,18 @@ class AuthService(
         
         return transaction {
             userRepository.insertUser(username, email, hashedPassword, salt, isGuest = false)
+            true
         }
     }
 
     fun login(usernameOrEmail: String, password: String): Boolean {
         val user = userRepository.findByUsernameOrEmail(usernameOrEmail)
-        return user?.let { 
-            val hashedPassword = hashPassword(password, it.salt)
+        return if (user != null) { 
+            val hashedPassword = hashPassword(password, user.salt)
             hashedPassword == user.passwordHash 
-        } ?: false
+        } else {
+            false
+        }
     }
 
     private fun validateInputs(username: String, email: String, password: String) {
