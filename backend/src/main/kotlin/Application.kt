@@ -2,4 +2,5 @@
 
 fun main() {
     println("Hello, AAMessenger!")
+    UserRepository(AuthConfig).someMethod()
 }

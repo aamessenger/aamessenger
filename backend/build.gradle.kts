@@ -39,6 +39,7 @@ dependencies {
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     implementation("commons-validator:commons-validator:1.7")
+    implementation("org.mindrot:jbcrypt:0.4")
 }
 
 application {
