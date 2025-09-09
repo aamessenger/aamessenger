@@ -10,7 +10,8 @@ data class AuthConfig(
 )
 
 val authConfig = AuthConfig(
-    dbUrl = System.getenv("DATABASE_URL") ?: "jdbc:postgresql://localhost:5432/postgres",
+    dbUrl = System.getenv("DATABASE_URL") 
+        ?: "jdbc:postgresql://localhost:5432/postgres",
     dbUser = System.getenv("DB_USER") ?: "postgres",
     dbPassword = System.getenv("DB_PASSWORD") ?: "databasepassword"
 )

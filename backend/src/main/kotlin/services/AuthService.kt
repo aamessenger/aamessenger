@@ -5,7 +5,7 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.security.SecureRandom
 import java.util.*
-//import org.apache.commons.validator.Validator
+import org.mindrot.jbcrypt.BCrypt
 
 class AuthService(
     private val userRepository: UserRepository,
@@ -14,20 +14,25 @@ class AuthService(
     fun registerUser(username: String, email: String, password: String): Boolean {
         validateInputs(username, email, password)
         
-        val salt = generateSalt()
-        val hashedPassword = hashPassword(password, salt)
+        val hashedPassword = hashPassword(password)
         
-        return transaction {
-            userRepository.insertUser(username, email, hashedPassword, salt, isGuest = false)
+        return try {
+            transaction {
+                userRepository.insertUser(username, email, hashedPassword, isGuest = false)
+            }
             true
+        } catch (e: Exception) {
+            if (e.message?.contains("duplicate key") == true) {
+                throw IllegalArgumentException("Username or email already exists")
+            }
+            throw e
         }
     }
 
     fun login(usernameOrEmail: String, password: String): Boolean {
         val user = userRepository.findByUsernameOrEmail(usernameOrEmail)
         return if (user != null) { 
-            val hashedPassword = hashPassword(password, user.salt)
-            hashedPassword == user.passwordHash 
+            verifyPassword(user.passwordHash, password)
         } else {
             false
         }
@@ -52,16 +57,11 @@ class AuthService(
         }
     }
 
-    private fun generateSalt(): String {
-        val random = SecureRandom()
-        val bytes = ByteArray(16)
-        random.nextBytes(bytes)
-        return Base64.getEncoder().encodeToString(bytes)
+    private fun hashPassword(password: String): String {
+        return BCrypt.hashpw(password, BCrypt.gensalt(12))
     }
 
-    private fun hashPassword(password: String, salt: String): String {
-        val combined = (salt + password).toByteArray()
-        val md = MessageDigest.getInstance("SHA-256")
-        return Base64.getEncoder().encodeToString(md.digest(combined))
+    private fun verifyPassword(storedHash: String, inputPassword: String): Boolean {
+        return BCrypt.checkpw(inputPassword, storedHash)
     }
 }
