@@ -18,13 +18,23 @@ class UserRepository(private val config: AuthConfig) {
     }
 
     object Users: Table() {
-        val isGuest: Column<Boolean> = bool("guest")
+        val isGuest: Column<Boolean> = bool("guest").default(false)
         val username: Column<String> = varchar("username", 50).uniqueIndex()
-        val email: Column<String> = varchar("email", 100).uniqueIndex()
-        val passwordHash: Column<String> = varchar("password_hash", 255)
+        val email: Column<String?> = varchar("email", 100).uniqueIndex().nullable()
+        val passwordHash: Column<String?> = varchar("password_hash", 255).nullable()
+
+        init {
+            check("email_required_if_not_guest") {
+                isGuest.eq(true) or email.isNotNull()
+            }
+            
+            check("password_required_if_not_guest") {
+                isGuest.eq(true) or passwordHash.isNotNull()
+            }
+        }
     }
     
-    fun insertUser(username: String, email: String, hashedPassword: String, isGuest: Boolean) {
+    fun insertUser(username: String, email: String?, hashedPassword: String?, isGuest: Boolean) {
         transaction {
             Users.insert {
                 it[this.isGuest] = isGuest
@@ -37,15 +47,17 @@ class UserRepository(private val config: AuthConfig) {
 
     fun findByUsernameOrEmail(usernameOrEmail: String): User? {
         return transaction {
-            Users.select { (Users.username eq usernameOrEmail) or (Users.email eq usernameOrEmail) }
-                .map {
-                    User(
-                        isGuest = it[Users.isGuest],
-                        username = it[Users.username],
-                        email = it[Users.email],
-                        passwordHash = it[Users.passwordHash]
-                    )
-                }.singleOrNull()
+            Users.select { 
+                (Users.username eq usernameOrEmail) or 
+                (Users.email eq usernameOrEmail)
+            }.map {
+                User(
+                    isGuest = it[Users.isGuest],
+                    username = it[Users.username],
+                    email = it[Users.email],
+                    passwordHash = it[Users.passwordHash]
+                )
+            }.singleOrNull()
         }
     }
 }

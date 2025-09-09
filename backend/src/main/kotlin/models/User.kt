@@ -3,6 +3,6 @@
 data class User(
         val isGuest: Boolean,
         val username: String,
-        val email: String,
-        val passwordHash: String
+        val email: String?,
+        val passwordHash: String?
 )
