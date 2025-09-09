@@ -32,4 +32,20 @@ fun Route.authRouting(authService: AuthService) {
             call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
         }
     }
+
+    post("/guest") {
+        val params = call.receive<Map<String, String>>()
+        val guestUsername = params["guest_username"] ?: ""
+        
+        try {
+            val success = authService.registerGuest(guestUsername)
+            if (success) {
+                call.respond(HttpStatusCode.Created, "Guest user registered")
+            } else {
+                call.respond(HttpStatusCode.BadRequest, "Guest registration failed")
+            }
+        } catch (e: Exception) {
+            call.respond(HttpStatusCode.BadRequest, e.message ?: "Guest registration failed")
+        }
+    }
 }

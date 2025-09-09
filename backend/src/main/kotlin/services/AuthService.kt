@@ -11,8 +11,20 @@ class AuthService(
     private val userRepository: UserRepository,
     private val config: AuthConfig
 ) {
+    fun login(usernameOrEmail: String, password: String): Boolean {
+        val user = userRepository.findByUsernameOrEmail(usernameOrEmail) ?: return false
+        return verifyPassword(user.passwordHash!!, password)
+    }
+
     fun registerUser(username: String, email: String, password: String): Boolean {
         validateInputs(username, email, password)
+
+        if (userRepository.findByUsernameOrEmail(username) != null) {
+            throw IllegalArgumentException("Username already taken")
+        }
+        if (userRepository.findByUsernameOrEmail(email) != null) {
+            throw IllegalArgumentException("Email already registered")
+        }
         
         val hashedPassword = hashPassword(password)
         
@@ -29,17 +41,34 @@ class AuthService(
         }
     }
 
-    fun login(usernameOrEmail: String, password: String): Boolean {
-        val user = userRepository.findByUsernameOrEmail(usernameOrEmail)
-        return if (user != null) { 
-            verifyPassword(user.passwordHash, password)
-        } else {
-            false
+    fun registerGuest(guestUsername: String): Boolean {
+        if (guestUsername.length < 3 || guestUsername.length > 20) {
+            throw IllegalArgumentException("Guest username must be between 3 and 20 characters")
+        }
+        
+        return try {
+            transaction {
+                userRepository.insertUser(
+                    username = guestUsername, 
+                    email = null, 
+                    hashedPassword = null, 
+                    isGuest = true
+                )
+            }
+            true
+        } catch (e: Exception) {
+            if (e.message?.contains("duplicate key") == true) {
+                throw IllegalArgumentException("Guest username already exists")
+            }
+            throw e
         }
     }
 
     private fun validateInputs(username: String, email: String, password: String) {
-        // Implement validation logic (email regex, password strength, etc.)
+        if (username.isBlank()) throw IllegalArgumentException("Username cannot be empty")
+        if (email.isBlank()) throw IllegalArgumentException("Email cannot be empty")
+        if (password.length < 8) throw IllegalArgumentException("Password must be at least 8 characters")
+
         if (!EmailValidator.getInstance().isValid(email)) {
             throw IllegalArgumentException("Invalid email format")
         }
