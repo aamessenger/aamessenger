@@ -16,9 +16,16 @@ class AuthService(
         
         val hashedPassword = hashPassword(password)
         
-        return transaction {
-            userRepository.insertUser(username, email, hashedPassword, isGuest = false)
+        return try {
+            transaction {
+                userRepository.insertUser(username, email, hashedPassword, isGuest = false)
+            }
             true
+        } catch (e: Exception) {
+            if (e.message?.contains("duplicate key") == true) {
+                throw IllegalArgumentException("Username or email already exists")
+            }
+            throw e
         }
     }
 

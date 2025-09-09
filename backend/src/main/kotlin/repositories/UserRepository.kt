@@ -1,21 +1,20 @@
 // Copyright (c) 2023 Andrejs Grišins, Anastasia Petrova. Unauthorized use prohibited.
 import org.postgresql.ds.PGSimpleDataSource
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.Column
-import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.transaction
 
 class UserRepository(private val config: AuthConfig) {
     val db = PGSimpleDataSource().apply {
         setURL(config.dbUrl)
         user = config.dbUser
         password = config.dbPassword
-        databaseName = config.dbName
     }
     
     init {
         Database.connect(db)
-        SchemaUtils.createMissingTablesAndColumns(Users)
+        transaction {
+            SchemaUtils.createMissingTablesAndColumns(Users)
+        }
     }
 
     object Users: Table() {
@@ -26,16 +25,27 @@ class UserRepository(private val config: AuthConfig) {
     }
     
     fun insertUser(username: String, email: String, hashedPassword: String, isGuest: Boolean) {
-
+        transaction {
+            Users.insert {
+                it[this.isGuest] = isGuest
+                it[this.username] = username
+                it[this.email] = email
+                it[this.passwordHash] = hashedPassword
+            }
+        }
     }
 
-    // Placeholder for actual database interaction code
     fun findByUsernameOrEmail(usernameOrEmail: String): User? {
-        // Implement database lookup logic here
-        return null
+        return transaction {
+            Users.select { (Users.username eq usernameOrEmail) or (Users.email eq usernameOrEmail) }
+                .map {
+                    User(
+                        isGuest = it[Users.isGuest],
+                        username = it[Users.username],
+                        email = it[Users.email],
+                        passwordHash = it[Users.passwordHash]
+                    )
+                }.singleOrNull()
+        }
     }
-
-    fun someMethod() { 
-     println("I love coding")
-   }
 }
